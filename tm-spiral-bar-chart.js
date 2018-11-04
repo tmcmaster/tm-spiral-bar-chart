@@ -16,7 +16,7 @@ class TmSpiralBarChart extends PolymerElement {
                 :host {
                     display: block;
                     font-family: 'Lucida Grande', 'Lucida Sans Unicode', 'Geneva', 'Verdana', sans-serif;
-                    margin: 40px;
+                    margin: 2px;
                 }
 
                 .axis path {
@@ -56,8 +56,11 @@ class TmSpiralBarChart extends PolymerElement {
                     display: block;
                     opacity: 0;
                 }
+                svg {
+                    /*border: solid red 2px;*/
+                    /*box-sizing: border-box;*/
+                }
             </style>
-            <h2>Spiral </h2>
             <div id="chart"></div>
         `;
     }
@@ -65,91 +68,124 @@ class TmSpiralBarChart extends PolymerElement {
     static get properties() {
         return {
             data: {
-                type: Array,
-                observer: '_dataChanged'
+                type: Array
             },
+            spirals: {
+                type: Number,
+                value: 3
+            },
+            size: {
+                type: Number,
+                value: 300
+            },
+            schema: {
+                type: Object,
+                value: {
+                    key: 'date',
+                    value: 'value',
+                    group: 'group',
+                    tooltip: [
+                        {
+                            key: 'date', title: 'Date', formatter: function (item) {
+                                return item.toDateString()
+                            }
+                        },
+                        {
+                            key: 'value', title: 'Value', formatter: function (item) {
+                                return Math.round(item * 100) / 100
+                            }
+                        },
+                        {key: 'group', title: 'Group'}
+                    ]
+                }
+            }
         };
+    }
+
+    static get observers() {
+        return [
+            '_rebuildGraph(data, schema, spirals)'
+        ];
     }
 
     ready() {
         super.ready();
-        this.set('data', this.generateTestData());
+        // this.set('data', this.generateTestData());
     }
 
-    generateTestData() {
-        let someData = [];
-        for (let i = 0; i < 365; i++) {
-            let currentDate = new Date();
-            currentDate.setDate(currentDate.getDate() + i);
-            someData.push({
-                date: currentDate,
-                value: Math.random(),
-                group: currentDate.getMonth()
-            });
-        }
-        return someData;
+    _rebuildGraph(data, schema, spirals) {
+        console.log('DATA / SCHEMA / SPIRALS: ', data, schema, spirals);
+        if (data === undefined || data === null || spirals === undefined || spirals === null) return;
+
+        this.setup(this.$.chart, this.size, data, schema, spirals);
     }
 
-    _dataChanged(data) {
-        this.setup(this.$.chart, data, {key: 'date', value: 'value', group: 'group'});
-    }
-
-    setup(container, someData, config) {
-        let width = 500,
-            height = 500,
-            start = 0,
+    setup(container, size, someData, config, spirals) {
+        let start = 0,
             end = 2.25,
-            numSpirals = 3,
+            width = size,
+            height = size,
+            numSpirals = spirals,
             N = someData.length,
-            margin = {top:50,bottom:50,left:50,right:50};
+            marginSize = width / 30,
+            margin = {top:marginSize,bottom:marginSize,left:marginSize,right:marginSize};
 
-        var theta = function(r) {
+        d3.select(container).selectAll("*").remove();
+
+        let theta = function(r) {
             return numSpirals * Math.PI * r;
         };
 
         // used to assign nodes color by group
-        var color = d3.scaleOrdinal(d3.schemeCategory10);
+        let color = d3.scaleOrdinal(d3.schemeCategory10);
 
-        var r = d3.min([width, height]) / 2 - 40;
+        let r = d3.min([width, height]) / 2 - marginSize;
 
-        var radius = d3.scaleLinear()
+        let radius = d3.scaleLinear()
             .domain([start, end])
-            .range([40, r]);
+            .range([marginSize, r]);
 
-        var svg = d3.select(container).append("svg")
+        // TODO: centering and margin not working properly
+        let center = {
+            x: ((width / 2) + (margin.left * (4-spirals))/2),
+            y: ((height / 2) + (margin.top * (6-spirals))/2 )
+        };
+
+        let svg = d3.select(container).append("svg")
             .attr("width", width + margin.right + margin.left)
             .attr("height", height + margin.left + margin.right)
             .append("g")
-            .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
+            .attr("transform", "translate(" + center.x + "," + center.y + ")");
 
-        var points = d3.range(start, end + 0.001, (end - start) / 1000);
+        let points = d3.range(start, end + 0.001, (end - start) / 1000);
 
-        var spiral = d3.radialLine()
+        let spiral = d3.radialLine()
             .curve(d3.curveCardinal)
             .angle(theta)
             .radius(radius);
 
-        var path = svg.append("path")
+        let path = svg.append("path")
             .datum(points)
             .attr("id", "spiral")
             .attr("d", spiral)
             .style("fill", "none")
             .style("stroke", "steelblue");
 
-        var spiralLength = path.node().getTotalLength(),
+
+        let spiralLength = path.node().getTotalLength(),
             barWidth = (spiralLength / N) - 1;
 
 
-        var timeScale = d3.scaleTime()
+        let timeScale = d3.scaleTime()
             .domain(d3.extent(someData, function(d){
-                return d.date;
+                return d[config.key];
             }))
             .range([0, spiralLength]);
 
         // yScale for the bar height
-        var yScale = d3.scaleLinear()
+        let yScale = d3.scaleLinear()
             .domain([0, d3.max(someData, function(d){
-                return d.value;
+                return d[config.value];
             })])
             .range([0, (r / numSpirals) - 30]);
 
@@ -159,7 +195,7 @@ class TmSpiralBarChart extends PolymerElement {
             .append("rect")
             .attr("x", function(d,i){
 
-                var linePer = timeScale(d.date),
+                let linePer = timeScale(d[config.key]),
                     posOnLine = path.node().getPointAtLength(linePer),
                     angleOnLine = path.node().getPointAtLength(linePer - barWidth);
 
@@ -178,16 +214,16 @@ class TmSpiralBarChart extends PolymerElement {
                 return barWidth;
             })
             .attr("height", function(d){
-                return yScale(d.value);
+                return yScale(d[config.value]);
             })
-            .style("fill", function(d){return color(d.group);})
+            .style("fill", function(d){return color(d[config.group]);})
             .style("stroke", "none")
             .attr("transform", function(d){
                 return "rotate(" + d.a + "," + d.x  + "," + d.y + ")"; // rotate the bar
             });
 
         // add date labels
-        var tF = d3.timeFormat("%b %Y"),
+        let tF = d3.timeFormat("%b %Y"),
             firstInMonth = {};
 
         svg.selectAll("text")
@@ -200,7 +236,7 @@ class TmSpiralBarChart extends PolymerElement {
             .append("textPath")
             // only add for the first of each month
             .filter(function(d){
-                var sd = tF(d.date);
+                let sd = tF(d[config.key]);
                 if (!firstInMonth[sd]){
                     firstInMonth[sd] = 1;
                     return true;
@@ -208,7 +244,7 @@ class TmSpiralBarChart extends PolymerElement {
                 return false;
             })
             .text(function(d){
-                return tF(d.date);
+                return tF(d[config.key]);
             })
             // place text along spiral
             .attr("xlink:href", "#spiral")
@@ -218,25 +254,27 @@ class TmSpiralBarChart extends PolymerElement {
             })
 
 
-        var tooltip = d3.select(container)
+        let tooltip = d3.select(container)
             .append('div')
             .attr('class', 'tooltip');
 
-        tooltip.append('div')
-            .attr('class', 'date');
-        tooltip.append('div')
-            .attr('class', 'value');
+        config.tooltip.forEach((item) => {
+            tooltip.append('div')
+                .attr('class', item.key);
+        });
 
         svg.selectAll("rect")
             .on('mouseover', function(d) {
 
-                tooltip.select('.date').html("Date: <b>" + d.date.toDateString() + "</b>");
-                tooltip.select('.value').html("Value: <b>" + Math.round(d.value*100)/100 + "<b>");
+                config.tooltip.forEach((item) => {
+                    let valueString = (item.formatter ? item.formatter(d[item.key]) : d[item.key]);
+                    tooltip.select('.' + item.key).html(item.title + ": <b>" + valueString + "</b>");
+                });
 
                 d3.select(this)
                     .style("fill","#FFFFFF")
                     .style("stroke","#000000")
-                    .style("stroke-width","2px");
+                    .style("stroke-width","1px");
 
                 tooltip.style('display', 'block');
                 tooltip.style('opacity',2);
@@ -248,7 +286,7 @@ class TmSpiralBarChart extends PolymerElement {
             })
             .on('mouseout', function(d) {
                 d3.select(this)
-                    .style("fill",color(d.group))
+                    .style("fill",color(d[config.group]))
                     .style("stroke","none")
                     .style("stroke-width","2px");
 

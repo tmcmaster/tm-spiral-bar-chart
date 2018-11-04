@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en">
-  <head>
+<head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
 
@@ -9,25 +9,61 @@
     <script src="../node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
 
     <script type="module">
-      import '@polymer/iron-demo-helpers/demo-pages-shared-styles';
-      import '@polymer/iron-demo-helpers/demo-snippet';
+        import '@polymer/iron-demo-helpers/demo-pages-shared-styles';
+        import '@polymer/iron-demo-helpers/demo-snippet';
+        import {} from '@polymer/polymer/lib/elements/dom-bind.js';
+
     </script>
 
     <script type="module" src="../tm-spiral-bar-chart.js"></script>
 
     <custom-style>
-      <style is="custom-style" include="demo-pages-shared-styles">
-      </style>
+        <style is="custom-style" include="demo-pages-shared-styles">
+        </style>
     </custom-style>
-  </head>
-  <body>
-    <div class="vertical-section-container centered">
-      <h3>Basic tm-spiral-bar-chart demo</h3>
-      <demo-snippet>
+</head>
+<body>
+
+
+<div class="vertical-section-container centered">
+    <h3>Basic tm-spiral-bar-chart demo</h3>
+    <demo-snippet>
         <template>
-          <tm-spiral-bar-chart></tm-spiral-bar-chart>
+            <tm-spiral-bar-chart size="400" spirals="4"></tm-spiral-bar-chart>
+            <script>
+                let chart = document.querySelector('tm-spiral-bar-chart');
+
+                chart.schema = {
+                    key: 'date',
+                    value: 'value',
+                    group: 'group',
+                    tooltip: [
+                        {
+                            key: 'date', title: 'Date', formatter: function (item) {
+                                return item.toDateString()
+                            }
+                        },
+                        {
+                            key: 'value', title: 'Value', formatter: function (item) {
+                                return Math.round(item * 100) / 100
+                            }
+                        },
+                        {key: 'group', title: 'Group'}
+                    ]
+                };
+                chart.data = Array.apply(null, {length: 300})
+                    .map((v,i) => new Date(new Date().getTime()+(86400000*i)))
+                    .map(date => {return {
+                        date: date,
+                        value: Math.random(),
+                        group: date.getMonth()
+                    }});
+
+
+            </script>
         </template>
-      </demo-snippet>
-    </div>
-  </body>
+    </demo-snippet>
+
+</div>
+</body>
 </html>
