@@ -60,6 +60,7 @@ class TmSpiralBarChart extends PolymerElement {
                     /*border: solid red 2px;*/
                     /*box-sizing: border-box;*/
                 }
+                
             </style>
             <div id="chart"></div>
         `;
@@ -104,7 +105,7 @@ class TmSpiralBarChart extends PolymerElement {
 
     static get observers() {
         return [
-            '_rebuildGraph(data, schema, spirals)'
+            '_rebuildGraph(data, size, schema, spirals)'
         ];
     }
 
@@ -113,14 +114,20 @@ class TmSpiralBarChart extends PolymerElement {
         // this.set('data', this.generateTestData());
     }
 
-    _rebuildGraph(data, schema, spirals) {
+
+
+    _rebuildGraph(data, size, schema, spirals) {
         console.log('DATA / SCHEMA / SPIRALS: ', data, schema, spirals);
         if (data === undefined || data === null || spirals === undefined || spirals === null) return;
 
-        this.setup(this.$.chart, this.size, data, schema, spirals);
+        this.setup(this.$.chart, size, data, schema, spirals);
     }
 
     setup(container, size, someData, config, spirals) {
+
+        if (size === undefined || someData === undefined || config === undefined || spirals === undefined) {
+            return;
+        }
         let start = 0,
             end = 2.25,
             width = size,

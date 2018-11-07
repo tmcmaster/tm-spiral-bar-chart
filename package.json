@@ -3,6 +3,7 @@
   "description": "Spiral bar chart Polymer web component.",
   "main": "tm-spiral-bar-chart.js",
   "dependencies": {
+    "@polymer/paper-input": "^3.0.1",
     "@polymer/polymer": "^3.0.0",
     "d3v4": "^4.2.2"
   },

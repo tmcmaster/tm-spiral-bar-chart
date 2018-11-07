@@ -1,0 +1,159 @@
+<!DOCTYPE html><html lang="en"><head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
+
+  <title>tm-spiral-menu demo</title>
+
+  <script src="node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
+
+  <script type="module" src="tm-spiral-bar-chart.js"></script>
+  <script type="module">import { html, PolymerElement } from "./node_modules/@polymer/polymer/polymer-element.js";
+import "./node_modules/@polymer/paper-input/paper-input.js";
+
+class DemoTmSpiralBarChart extends PolymerElement {
+  static get template() {
+    return html`
+                    <style>
+                        :host {
+                            display: block;
+                            display: flex;
+                            flex-direction: row;
+                            justify-content: center;
+                        }
+
+                        tm-spiral-menu {
+                            box-sizing: border-box;
+                            //border: solid lightgray 1px;
+                        }
+                        div.controls {
+                            display: inline-block;
+                            width: 200px;
+                            padding: 10px;
+                        }
+                        div.element {
+                            display: inline-block;
+                        }
+                        div.page {
+                            display: flex;
+                        }
+
+                        paper-input {
+                            width: 150px;
+                        }
+                    </style>
+                    <div class="page">
+                        <div class="controls">
+                            <h2>Controls</h2>
+                            <paper-input always-float-label label="Number of menu items" value="{{settings.number}}" type="number"></paper-input>
+                            <paper-input always-float-label label="Number of spirals" value="{{settings.spirals}}" type="number"></paper-input>
+                            <paper-input always-float-label label="Menu Radius (px)" value="{{settings.radius}}" type="number"></paper-input>
+                        </div>
+                        <div class="element">
+                            <!--<tm-spiral-menu items="[[items]]"></tm-spiral-menu>-->
+                            <tm-spiral-bar-chart data="[[items]]" spirals="[[spirals]]" size="[[radius]]"></tm-spiral-bar-chart>
+                        </div>
+
+                    </div>
+                `;
+  }
+
+  static get properties() {
+    return {
+      data: {
+        type: Array,
+        value: []
+      },
+      settings: {
+        type: Object,
+        observer: '_settingsChanged',
+        value: {
+          radius: 300,
+          spirals: 3,
+          number: 200,
+          schema: `{
+                              key: 'date',
+                              value: 'value',
+                              group: 'group',
+                              tooltip: [
+                                  {
+                                      key: 'date', title: 'Date', formatter: function (item) {
+                                          return item.toDateString()
+                                      }
+                                  },
+                                  {
+                                      key: 'value', title: 'Value', formatter: function (item) {
+                                          return Math.round(item * 100) / 100
+                                      }
+                                  },
+                                  {key: 'group', title: 'Group'}
+                              ]
+                          }`
+        }
+      },
+      items: {
+        type: Array,
+        computed: '_generateItems(data, number)'
+      },
+      number: {
+        type: Number,
+        computed: '_parseInteger(settings.number)'
+      },
+      spirals: {
+        type: Number,
+        computed: '_parseInteger(settings.spirals)'
+      },
+      radius: {
+        type: Number,
+        computed: '_parseInteger(settings.radius)'
+      },
+      schema: {
+        type: Number,
+        computed: '_convertStringToJSON(settings.duration)'
+      }
+    };
+  }
+
+  _convertStringToJSON(value) {
+    return value === undefined ? '{}' : JSON.parse(value);
+  }
+
+  _parseInteger(value) {
+    return parseInt(value);
+  }
+
+  _convertT0Milly(value) {
+    return parseInt(value) * 1000;
+  }
+
+  _generateItems(data, number) {
+    let items = [];
+
+    for (let i = 0; i < number; i++) {
+      items.push(data[i]);
+    }
+
+    return items;
+  }
+
+  ready() {
+    super.ready();
+    this.set('data', Array.apply(null, {
+      length: 300
+    }).map((v, i) => new Date(new Date().getTime() + 86400000 * i)).map(date => {
+      return {
+        date: date,
+        value: Math.random(),
+        group: date.getMonth()
+      };
+    }));
+  }
+
+}
+
+window.customElements.define('demo-tm-spiral-bar-chart', DemoTmSpiralBarChart);</script>
+</head>
+<body>
+<demo-tm-spiral-bar-chart></demo-tm-spiral-bar-chart>
+
+
+</body></html>
